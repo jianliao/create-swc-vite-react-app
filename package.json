@@ -1,0 +1,49 @@
+{
+  "name": "create-swc-vite-react-app",
+  "version": "0.1.0",
+  "description": "Create React applications with SWC and Vite",
+  "main": "dist/index.js",
+  "bin": {
+    "create-swc-vite-react-app": "./dist/index.js"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": [
+    "react",
+    "swc",
+    "vite",
+    "create-app",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "fs-extra": "^11.3.0",
+    "prompts": "^2.4.2",
+    "validate-npm-package-name": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.13.13",
+    "@types/prompts": "^2.4.9",
+    "@types/validate-npm-package-name": "^4.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "eslint": "^9.23.0",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 
