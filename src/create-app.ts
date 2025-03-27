@@ -21,7 +21,7 @@ export async function createApp({
   themeScale,
   themeColor,
   system,
-  isMcpMode = false,
+  isMcpMode = true,
 }: CreateAppOptions): Promise<void | McpResponse> {
   const root = path.resolve(projectPath);
   const appName = path.basename(root);
