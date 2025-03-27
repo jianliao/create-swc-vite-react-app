@@ -144,8 +144,8 @@ npx create-swc-vite-react-app .
   );
 
   // Start receiving messages on stdin and sending messages on stdout
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
   const logger = new McpLogger(true);
   logger.log("MCP server connected via stdio");
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
 } 
