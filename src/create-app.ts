@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
 import { execSync } from 'child_process';
+import { McpLogger, McpResponse } from './utils/mcp-logger.js';
 
 interface CreateAppOptions {
   projectPath: string;
@@ -10,6 +11,7 @@ interface CreateAppOptions {
   themeScale: 'large' | 'medium' | 'both';
   themeColor: 'dark' | 'light' | 'both';
   system: 'spectrum' | 'express' | 'spectrum-two';
+  isMcpMode?: boolean;
 }
 
 export async function createApp({
@@ -19,22 +21,22 @@ export async function createApp({
   themeScale,
   themeColor,
   system,
-}: CreateAppOptions): Promise<void> {
+  isMcpMode = false,
+}: CreateAppOptions): Promise<void | McpResponse> {
   const root = path.resolve(projectPath);
   const appName = path.basename(root);
+  const logger = new McpLogger(isMcpMode);
 
-  console.log(`Creating a new React app with TypeScript in ${chalk.green(root)}.`);
-  console.log();
+  logger.log(`Creating a new React app with TypeScript in ${chalk.green(root)}.`);
+  logger.log('');
 
   // Only create directory if not doing in-place project creation
   if (projectPath !== '.') {
     try {
       fs.mkdirSync(root, { recursive: true });
     } catch (err) {
-      if (err instanceof Error) {
-        console.error(chalk.red(`Error creating directory: ${err.message}`));
-      }
-      process.exit(1);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return logger.error(`Error creating directory: ${errorMessage}`);
     }
   }
 
@@ -63,12 +65,70 @@ export async function createApp({
   const dependencies = [
     'react@^19',
     'react-dom@^19',
-    '@spectrum-web-components/theme',
-    '@spectrum-web-components/tooltip',
-    '@spectrum-web-components/toast',
+    '@spectrum-web-components/accordion',
+    '@spectrum-web-components/action-bar',
     '@spectrum-web-components/action-button',
+    '@spectrum-web-components/action-group',
+    '@spectrum-web-components/action-menu',
+    '@spectrum-web-components/alert-banner',
+    '@spectrum-web-components/alert-dialog',
+    '@spectrum-web-components/asset',
+    '@spectrum-web-components/avatar',
+    '@spectrum-web-components/badge',
+    '@spectrum-web-components/breadcrumbs',
     '@spectrum-web-components/button',
-    '@spectrum-web-components/checkbox'
+    '@spectrum-web-components/button-group',
+    '@spectrum-web-components/card',
+    '@spectrum-web-components/checkbox',
+    '@spectrum-web-components/coachmark',
+    '@spectrum-web-components/color-area',
+    '@spectrum-web-components/color-field',
+    '@spectrum-web-components/color-handle',
+    '@spectrum-web-components/color-loupe',
+    '@spectrum-web-components/color-slider',
+    '@spectrum-web-components/color-wheel',
+    '@spectrum-web-components/combobox',
+    '@spectrum-web-components/contextual-help',
+    '@spectrum-web-components/dialog',
+    '@spectrum-web-components/divider',
+    '@spectrum-web-components/dropzone',
+    '@spectrum-web-components/field-group',
+    '@spectrum-web-components/field-label',
+    '@spectrum-web-components/grid',
+    '@spectrum-web-components/help-text',
+    '@spectrum-web-components/icons-workflow',
+    '@spectrum-web-components/illustrated-message',
+    '@spectrum-web-components/infield-button',
+    '@spectrum-web-components/link',
+    '@spectrum-web-components/menu',
+    '@spectrum-web-components/meter',
+    '@spectrum-web-components/number-field',
+    '@spectrum-web-components/overlay',
+    '@spectrum-web-components/picker',
+    '@spectrum-web-components/picker-button',
+    '@spectrum-web-components/popover',
+    '@spectrum-web-components/progress-bar',
+    '@spectrum-web-components/progress-circle',
+    '@spectrum-web-components/radio',
+    '@spectrum-web-components/search',
+    '@spectrum-web-components/sidenav',
+    '@spectrum-web-components/slider',
+    '@spectrum-web-components/split-view',
+    '@spectrum-web-components/status-light',
+    '@spectrum-web-components/swatch',
+    '@spectrum-web-components/switch',
+    '@spectrum-web-components/table',
+    '@spectrum-web-components/tabs',
+    '@spectrum-web-components/tags',
+    '@spectrum-web-components/textfield',
+    '@spectrum-web-components/theme',
+    '@spectrum-web-components/thumbnail',
+    '@spectrum-web-components/toast',
+    '@spectrum-web-components/tooltip',
+    '@spectrum-web-components/top-nav',
+    '@spectrum-web-components/tray',
+    '@spectrum-web-components/truncated',
+    '@spectrum-web-components/underlay',
   ];
 
   const devDependencies = [
@@ -86,7 +146,7 @@ export async function createApp({
     ] : []),
   ];
 
-  console.log('Installing dependencies...');
+  logger.log('Installing dependencies...');
 
   const installCmd = packageManager === 'yarn'
     ? 'yarn add'
@@ -94,8 +154,8 @@ export async function createApp({
       ? 'pnpm add'
       : 'npm install';
 
-  execSync(`${installCmd} ${dependencies.join(' ')}`, { stdio: 'inherit' });
-  execSync(`${installCmd} -D ${devDependencies.join(' ')}`, { stdio: 'inherit' });
+  execSync(`${installCmd} ${dependencies.join(' ')}`, { stdio: isMcpMode ? 'pipe' : 'inherit' });
+  execSync(`${installCmd} -D ${devDependencies.join(' ')}`, { stdio: isMcpMode ? 'pipe' : 'inherit' });
 
   // Verify React version
   try {
@@ -104,12 +164,12 @@ export async function createApp({
     const reactVersion = reactPackageJson.version;
 
     if (!reactVersion.startsWith('19.')) {
-      console.warn(chalk.yellow(`Warning: React version ${reactVersion} was installed. This tool is designed for React 19+.`));
+      logger.warn(`Warning: React version ${reactVersion} was installed. This tool is designed for React 19+.`);
     } else {
-      console.log(chalk.green(`React ${reactVersion} successfully installed.`));
+      logger.log(chalk.green(`React ${reactVersion} successfully installed.`));
     }
   } catch (err) {
-    console.warn(chalk.yellow('Could not verify React version.'));
+    logger.warn('Could not verify React version.');
   }
 
   // Create source files
@@ -145,7 +205,7 @@ export async function createApp({
 
           // Write the modified file
           fs.writeFileSync(destPath, themeContent);
-          console.log(`Generated ${chalk.cyan('SpTheme.ts')} with your theme preferences.`);
+          logger.log(`Generated ${chalk.cyan('SpTheme.ts')} with your theme preferences.`);
         } else {
           // Copy other template files as-is
           fs.copyFileSync(sourcePath, destPath);
@@ -437,24 +497,28 @@ export default defineConfig({
     return imports.join('\n');
   }
 
-  console.log();
-  console.log(chalk.green('Success!'), 'Created', chalk.cyan(appName), 'at', chalk.cyan(root));
-  console.log();
-  console.log('Inside that directory, you can run several commands:');
-  console.log();
-  console.log(chalk.cyan(`  ${packageManager} dev`));
-  console.log('    Starts the development server.');
-  console.log();
-  console.log(chalk.cyan(`  ${packageManager} build`));
-  console.log('    Bundles the app into static files for production.');
-  console.log();
-  console.log(chalk.cyan(`  ${packageManager} preview`));
-  console.log('    Locally preview production build.');
-  console.log();
-  console.log('We suggest that you begin by typing:');
-  console.log();
-  console.log(chalk.cyan('  cd'), appName);
-  console.log(`  ${chalk.cyan(`${packageManager} dev`)}`);
-  console.log();
-  console.log('Happy hacking!');
+  logger.log('');
+  logger.log(chalk.green('Success!'), 'Created', chalk.cyan(appName), 'at', chalk.cyan(root));
+  logger.log('');
+  logger.log('Inside that directory, you can run several commands:');
+  logger.log('');
+  logger.log(chalk.cyan(`  ${packageManager} dev`));
+  logger.log('    Starts the development server.');
+  logger.log('');
+  logger.log(chalk.cyan(`  ${packageManager} build`));
+  logger.log('    Bundles the app into static files for production.');
+  logger.log('');
+  logger.log(chalk.cyan(`  ${packageManager} preview`));
+  logger.log('    Locally preview production build.');
+  logger.log('');
+  logger.log('We suggest that you begin by typing:');
+  logger.log('');
+  logger.log(chalk.cyan('  cd'), appName);
+  logger.log(`  ${chalk.cyan(`${packageManager} dev`)}`);
+  logger.log('');
+  logger.log('Happy hacking!');
+
+  if (isMcpMode) {
+    return logger.getContent();
+  }
 } 

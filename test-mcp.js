@@ -3,9 +3,18 @@
 import { spawn } from 'child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import fs from 'fs-extra';
+import path from 'path';
 
 async function main() {
   try {
+    // Clean up previous test directory if it exists
+    const testDir = path.join(process.cwd(), 'test-mcp-project');
+    if (fs.existsSync(testDir)) {
+      console.log('Removing previous test directory...');
+      await fs.remove(testDir);
+    }
+
     console.log('Testing MCP client/server communication...');
     
     // Create a client

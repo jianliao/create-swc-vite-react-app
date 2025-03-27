@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { createApp } from './create-app.js';
 import { validateProjectName } from './utils/validate-name.js';
+import { McpLogger } from './utils/mcp-logger.js';
 import path from 'path';
 
 // Define the schema for the create-app tool params
@@ -14,6 +15,9 @@ const createAppParamsSchema = {
   themeColor: z.enum(['dark', 'light', 'both']).default('both'),
   system: z.enum(['spectrum', 'spectrum-two', 'express']).default('spectrum')
 };
+
+const createAppSchema = z.object(createAppParamsSchema);
+type CreateAppParams = z.infer<typeof createAppSchema>;
 
 export async function startMcpServer() {
   // Create an MCP server
@@ -27,7 +31,8 @@ export async function startMcpServer() {
   server.tool(
     "create-app",
     createAppParamsSchema,
-    async (params) => {
+    async (params: CreateAppParams) => {
+      const logger = new McpLogger(true);
       try {
         const { projectPath, useEslint, packageManager, themeScale, themeColor, system } = params;
 
@@ -35,13 +40,7 @@ export async function startMcpServer() {
         if (projectPath !== '.') {
           const validationResult = validateProjectName(projectPath);
           if (!validationResult.valid) {
-            return {
-              content: [{
-                type: "text",
-                text: `Invalid project name: ${validationResult.problems![0]}`
-              }],
-              isError: true
-            };
+            return logger.error(`Invalid project name: ${validationResult.problems![0]}`);
           }
         }
 
@@ -51,29 +50,24 @@ export async function startMcpServer() {
           : projectPath;
 
         // Create the app
-        await createApp({
+        const result = await createApp({
           projectPath: finalProjectName,
           useEslint,
           packageManager,
           themeScale,
           themeColor,
-          system
+          system,
+          isMcpMode: true
         });
 
-        return {
-          content: [{
-            type: "text",
-            text: `Successfully created a new React application with Spectrum Web Components in ${projectPath === '.' ? 'the current directory' : projectPath}!`
-          }]
-        };
+        // If result is undefined, it means we're not in MCP mode (shouldn't happen)
+        if (!result) {
+          return logger.error("Error: createApp did not return MCP content");
+        }
+
+        return result;
       } catch (error) {
-        return {
-          content: [{
-            type: "text",
-            text: `Error creating app: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true
-        };
+        return logger.error(`Error creating app: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   );
@@ -83,7 +77,8 @@ export async function startMcpServer() {
     "create-app",
     "Creates a new React application with Spectrum Web Components and Vite",
     () => {
-      console.log("Prompt callback executed!");
+      const logger = new McpLogger(true);
+      logger.log("Prompt callback executed!");
       return ({
         messages: [{
           role: "user",
@@ -151,5 +146,6 @@ npx create-swc-vite-react-app .
   // Start receiving messages on stdin and sending messages on stdout
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.log("MCP server connected via stdio");
+  const logger = new McpLogger(true);
+  logger.log("MCP server connected via stdio");
 } 

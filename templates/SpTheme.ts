@@ -1,10 +1,6 @@
 import { FC, ReactNode } from "react";
 
-import '@spectrum-web-components/theme/sp-theme.js';
-import '@spectrum-web-components/theme/express/scale-large.js';
-import '@spectrum-web-components/theme/express/scale-medium.js';
-import '@spectrum-web-components/theme/express/theme-dark.js';
-import '@spectrum-web-components/theme/express/theme-light.js';
+// THEME_IMPORTS_PLACEHOLDER
 
 import { Theme } from "@spectrum-web-components/theme";
 

@@ -1,6 +1,6 @@
 {
   "name": "create-swc-vite-react-app",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Create React applications with SWC and Vite",
   "main": "dist/index.js",
   "bin": {
