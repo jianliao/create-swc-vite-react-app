@@ -6,6 +6,10 @@ import { validateProjectName } from './utils/validate-name.js';
 import { McpLogger } from './utils/mcp-logger.js';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -125,7 +129,7 @@ npx create-swc-vite-react-app my-app
 - \`--use-yarn\`: Use yarn as package manager
 - \`--theme-scale <scale>\`: Theme scale (large, medium, both) (default: both)
 - \`--theme-color <color>\`: Theme color (dark, light, both) (default: both)
-- \`--system <s>\`: Design system (spectrum, spectrum-two, express) (default: spectrum)
+- \`--system  \`: Design system (spectrum, spectrum-two, express) (default: spectrum)
 
 ## Examples
 \`\`\`
