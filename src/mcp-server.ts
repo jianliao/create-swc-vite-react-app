@@ -5,6 +5,10 @@ import { createApp } from './create-app.js';
 import { validateProjectName } from './utils/validate-name.js';
 import { McpLogger } from './utils/mcp-logger.js';
 import path from 'path';
+import fs from 'fs';
+
+const packageJsonPath = path.resolve(__dirname, '../package.json');
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 // Define the schema for the create-app tool params
 const createAppParamsSchema = {
@@ -23,7 +27,7 @@ export async function startMcpServer() {
   // Create an MCP server
   const server = new McpServer({
     name: "create-swc-vite-react-app",
-    version: process.env.npm_package_version || "0.1.0",
+    version: packageJson.version,
     description: "Create React applications with Spectrum Web Components and Vite"
   });
 
