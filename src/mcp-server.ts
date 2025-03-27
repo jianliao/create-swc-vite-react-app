@@ -52,7 +52,7 @@ export async function startMcpServer() {
 
         // Create the app
         await createApp({
-          projectPath,
+          projectPath: finalProjectName,
           useEslint,
           packageManager,
           themeScale,
