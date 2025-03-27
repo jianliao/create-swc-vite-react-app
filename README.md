@@ -1,6 +1,6 @@
 # create-swc-vite-react-app
 
-A CLI tool to create React applications with Vite and SWC for fast development and build times.
+A CLI tool to create React applications with Vite and SWC for fast development and build times. Now with MCP support for integration with AI assistants!
 
 ## Features
 
@@ -15,6 +15,7 @@ A CLI tool to create React applications with Vite and SWC for fast development a
 - 🎨 Beautiful default template
 - 📱 Responsive design ready
 - 🌙 Dark mode support
+- 🤖 MCP support for integration with AI assistants
 
 ## Quick Start
 
@@ -27,6 +28,9 @@ yarn create swc-vite-react-app my-app
 
 # Using pnpm
 pnpm create swc-vite-react-app my-app
+
+# Create project in current directory
+npx create-swc-vite-react-app .
 ```
 
 ## Options
@@ -38,6 +42,7 @@ pnpm create swc-vite-react-app my-app
 - `--theme-scale` - Theme scale: large, medium, or both (default: both)
 - `--theme-color` - Theme color: dark, light, or both (default: both)
 - `--system` - Design system: spectrum, spectrum-two, or express (default: spectrum)
+- `--mcp` - Start in MCP mode for integration with AI assistants
 
 Note: The SpTheme.ts file will be customized with the appropriate imports based on your theme selections.
 
@@ -77,6 +82,28 @@ In the project directory, you can run:
 - `npm build` - Bundles the app for production
 - `npm preview` - Preview the production build locally
 - `npm lint` - Run ESLint to check code quality
+
+## MCP Support
+
+This tool now includes MCP (Model Context Protocol) support, which allows it to be integrated with AI assistants:
+
+```bash
+# Start in MCP mode
+npm run start:mcp
+
+# Start in MCP debug mode
+npm run debug:mcp
+```
+
+### MCP Features
+
+- **Tools**: The MCP server exposes a `create-app` tool that can create a new project with the same options as the CLI.
+- **Prompts**: The MCP server includes a prompt for guiding users through creating a new project.
+- **Resources**: Documentation for CLI options is available as a resource.
+
+### Integration with Cursor
+
+To integrate with Cursor, you can configure it to use this tool with the MCP protocol. This allows Cursor's AI assistant to directly create SWC+Vite React applications based on user instructions.
 
 ## Requirements
 

@@ -15,18 +15,23 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "jest",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "start:mcp": "node dist/index.js --mcp",
+    "debug:mcp": "node --inspect dist/index.js --mcp",
+    "test:mcp": "node test-mcp.js"
   },
   "keywords": [
     "react",
     "swc",
     "vite",
     "create-app",
-    "cli"
+    "cli",
+    "mcp"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "fs-extra": "^11.3.0",
@@ -46,4 +51,4 @@
   "engines": {
     "node": ">=18.0.0"
   }
-} 
+}
