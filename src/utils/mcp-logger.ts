@@ -13,7 +13,7 @@ export interface McpResponse {
 }
 
 export class McpLogger {
-  private content: McpContent[] = [];
+  private messages: string[] = [];
   private isMcpMode: boolean;
 
   constructor(isMcpMode: boolean) {
@@ -23,7 +23,7 @@ export class McpLogger {
   log(...messages: any[]): void {
     const message = messages.join(' ');
     if (this.isMcpMode) {
-      this.content.push({ type: 'text', text: message });
+      this.messages.push(message);
     } else {
       console.log(message);
     }
@@ -31,7 +31,7 @@ export class McpLogger {
 
   warn(message: string): void {
     if (this.isMcpMode) {
-      this.content.push({ type: 'text', text: message });
+      this.messages.push(message);
     } else {
       console.warn(chalk.yellow(message));
     }
@@ -51,7 +51,10 @@ export class McpLogger {
 
   getContent(): McpResponse {
     return {
-      content: this.content
+      content: [{
+        type: 'text',
+        text: this.messages.length > 0 ? this.messages.join('\n') : ''
+      }]
     };
   }
 } 

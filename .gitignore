@@ -80,4 +80,5 @@ out
 # Project specific
 cli-test-projects/
 server_output.log
-test-results/ 
+test-results/
+test-mcp-project/

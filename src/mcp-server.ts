@@ -64,8 +64,7 @@ export async function startMcpServer() {
           packageManager,
           themeScale,
           themeColor,
-          system,
-          isMcpMode: true
+          system
         });
 
         // If result is undefined, it means we're not in MCP mode (shouldn't happen)
@@ -152,8 +151,6 @@ npx create-swc-vite-react-app .
   );
 
   // Start receiving messages on stdin and sending messages on stdout
-  const logger = new McpLogger(true);
-  logger.log("MCP server connected via stdio");
   const transport = new StdioServerTransport();
   await server.connect(transport);
 } 
