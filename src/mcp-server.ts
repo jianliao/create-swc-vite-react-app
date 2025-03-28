@@ -48,6 +48,7 @@ export async function startMcpServer() {
         const finalProjectName = projectPath === '.'
           ? path.basename(process.cwd())
           : projectPath;
+        logger.error(`Project path: ${finalProjectName}`);
 
         // Create the app
         const result = await createApp({
