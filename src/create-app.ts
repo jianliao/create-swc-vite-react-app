@@ -133,6 +133,7 @@ export async function createApp({
 
   const devDependencies = [
     'vite',
+    'vite-tsconfig-paths',
     '@vitejs/plugin-react-swc',
     'typescript',
     '@types/react',
@@ -172,74 +173,121 @@ export async function createApp({
     logger.warn('Could not verify React version.');
   }
 
-  // Create source files
+  // Create src directory
   const srcDir = path.join(root, 'src');
   fs.mkdirSync(srcDir, { recursive: true });
 
-  // Create components directory and copy template files
-  const componentsDir = path.join(srcDir, 'components');
+  // Create src/core/components directory
+  const componentsDir = path.join(srcDir, 'core/components');
   fs.mkdirSync(componentsDir, { recursive: true });
 
-  // Create layout directory and copy template files
-  const layoutDir = path.join(srcDir, 'layout');
-  fs.mkdirSync(layoutDir, { recursive: true });
+  // Create src/core/icons directory
+  const iconsDir = path.join(srcDir, 'core/icons');
+  fs.mkdirSync(iconsDir, { recursive: true });
+
+  // Create src/layouts directory
+  const layoutsDir = path.join(srcDir, 'layouts');
+  fs.mkdirSync(layoutsDir, { recursive: true });
+
+  // Create src/custom directory
+  const customDir = path.join(srcDir, 'custom');
+  fs.mkdirSync(customDir, { recursive: true });
+
+  // Create src/shared directory
+  const sharedDir = path.join(srcDir, 'shared');
+  fs.mkdirSync(sharedDir, { recursive: true });
+
 
   // Copy template files
   const templateDir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'templates');
+
   if (fs.existsSync(templateDir)) {
     // Copy component templates
     const templateComponentsDir = path.join(templateDir, 'components');
     if (fs.existsSync(templateComponentsDir)) {
       const componentFiles = fs.readdirSync(templateComponentsDir);
-      const componentsToExport = [];
+      const componentExports: string[] = [];
 
       for (const file of componentFiles) {
-        if (file.endsWith('.ts')) {
-          const componentName = file.replace('.ts', '');
+        if (file.endsWith('.ts') || file.endsWith('.tsx')) {
           const sourcePath = path.join(templateComponentsDir, file);
           const destPath = path.join(componentsDir, file);
+          const componentName = path.basename(file, path.extname(file));
 
-          // Special handling for SpTheme.ts
-          if (file === 'SpTheme.ts') {
-            // Read the template file
-            let themeContent = fs.readFileSync(sourcePath, 'utf8');
+          // Add export statement
+          componentExports.push(`export * from './${componentName}';`);
 
-            // Generate the imports based on user selections
-            const themeImports = generateThemeImports(themeScale, themeColor, system);
-
-            // Replace the placeholder with the generated imports
-            themeContent = themeContent.replace('// THEME_IMPORTS_PLACEHOLDER', themeImports);
-
-            // Write the modified file
-            fs.writeFileSync(destPath, themeContent);
-            logger.log(`Generated ${chalk.cyan('SpTheme.ts')} with your theme preferences.`);
-          } else {
-            // Copy other template files as-is
-            fs.copyFileSync(sourcePath, destPath);
-          }
-
-          componentsToExport.push(componentName);
+          // Copy other template files as-is
+          fs.copyFileSync(sourcePath, destPath);
         }
       }
 
-      // Copy icons directory if it exists
-      const iconsSourceDir = path.join(templateComponentsDir, 'icons');
-      if (fs.existsSync(iconsSourceDir)) {
-        const iconsDestDir = path.join(componentsDir, 'icons');
-        fs.mkdirSync(iconsDestDir, { recursive: true });
-        fs.copySync(iconsSourceDir, iconsDestDir);
+      // Generate index.ts for components
+      fs.writeFileSync(
+        path.join(componentsDir, 'index.ts'),
+        componentExports.join('\n') + '\n'
+      );
+    }
+
+    // Special handling for Theme.ts
+    const themeSourcePath = path.join(templateDir, 'Theme.ts');
+    const themeDestPath = path.join(srcDir, 'Theme.ts');
+    if (fs.existsSync(themeSourcePath)) {
+      fs.copyFileSync(themeSourcePath, themeDestPath);
+    }
+    // Read the template file
+    let themeContent = fs.readFileSync(themeDestPath, 'utf8');
+
+    // Generate the imports based on user selections
+    const themeImports = generateThemeImports(themeScale, themeColor, system);
+
+    // Replace the placeholder with the generated imports
+    themeContent = themeContent.replace('// THEME_IMPORTS_PLACEHOLDER', themeImports);
+
+    // Write the modified file
+    fs.writeFileSync(themeDestPath, themeContent);
+    logger.log(`Generated ${chalk.cyan('Theme.ts')} with your theme preferences.`);
+
+    // Copy icons directory if it exists
+    const iconsSourceDir = path.join(templateDir, 'icons');
+    if (fs.existsSync(iconsSourceDir)) {
+      fs.copySync(iconsSourceDir, iconsDir);
+      
+      // Generate index.ts for icons
+      const iconFiles = fs.readdirSync(iconsSourceDir);
+      const iconExports: string[] = [];
+
+      for (const file of iconFiles) {
+        if (file.endsWith('.ts') || file.endsWith('.tsx')) {
+          const iconName = path.basename(file, path.extname(file));
+          iconExports.push(`export * from './${iconName}';`);
+        }
       }
+
+      fs.writeFileSync(
+        path.join(iconsDir, 'index.ts'),
+        iconExports.join('\n') + '\n'
+      );
     }
 
     // Copy layout templates
-    const templateLayoutDir = path.join(templateDir, 'layout');
+    const templateLayoutDir = path.join(templateDir, 'layouts');
     if (fs.existsSync(templateLayoutDir)) {
       const layoutFiles = fs.readdirSync(templateLayoutDir);
 
       for (const file of layoutFiles) {
         const sourcePath = path.join(templateLayoutDir, file);
-        const destPath = path.join(layoutDir, file);
-        fs.copyFileSync(sourcePath, destPath);
+        const destPath = path.join(layoutsDir, file);
+        
+        // Check if it's a directory or file
+        const stats = fs.statSync(sourcePath);
+        if (stats.isDirectory()) {
+          // Use copySync for directories
+          fs.copySync(sourcePath, destPath);
+        } else {
+          // Use copyFileSync for individual files
+          fs.copyFileSync(sourcePath, destPath);
+        }
       }
     }
   }
@@ -252,10 +300,10 @@ export async function createApp({
   fs.writeFileSync(
     path.join(srcDir, `App.${extension}`),
     `import './App.css'
-import { SpTheme } from '@components/SpTheme'
-import Header from './layout/Header'
-import Sidebar from './layout/Sidebar'
-import MainContent from './layout/MainContent'
+import { SpTheme } from './Theme'
+import Header from './layouts/s2-app-frame/Header'
+import Sidebar from './layouts/s2-app-frame/Sidebar'
+import MainContent from './layouts/s2-app-frame/MainContent'
 
 function App() {
   return (
@@ -342,16 +390,10 @@ body {
     path.join(root, 'vite.config.ts'),
     `import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@components': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src/components')
-    }
-  }
+  plugins: [react(), tsconfigPaths()],
 })
 `
   );
@@ -384,8 +426,10 @@ export default defineConfig({
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@components": ["src/components"],
-      "@components/*": ["src/components/*"]
+      "@core-ui-components/*": ["src/core/components/*"],
+      "@core-ui-components": ["src/core/components/"],
+      "@core-ui-icons/*": ["src/core/icons/*"],
+      "@core-ui-icons": ["src/core/icons/"]
     }
   },
   "include": ["src"],

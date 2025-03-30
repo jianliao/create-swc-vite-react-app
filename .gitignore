@@ -82,3 +82,4 @@ cli-test-projects/
 server_output.log
 test-results/
 test-mcp-project/
+mcp-test/

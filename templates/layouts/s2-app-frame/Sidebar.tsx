@@ -1,22 +1,20 @@
-import './Sidebar.css';
+import "./Sidebar.css";
 
-import { ActionGroup, ActionButton } from '@components';
-import { HomeIcon } from '@components/icons/HomeIcon';
-import { DiscoverIcon } from '@components/icons/DiscoverIcon';
-import { PluginIcon } from '@components/icons/PluginIcon';
-import { FolderIcon } from '@components/icons/FolderIcon';
-import { BrandIcon } from '@components/icons/BrandIcon';
-import { CalendarIcon } from '@components/icons/CalendarIcon';
-import { LightbulbIcon } from '@components/icons/LightbulbIcon';
+import { ActionGroup, ActionButton } from "@core-ui-components";
+import {
+  HomeIcon,
+  DiscoverIcon,
+  PluginIcon,
+  FolderIcon,
+  BrandIcon,
+  CalendarIcon,
+  LightbulbIcon,
+} from "@core-ui-icons";
 
 export const Sidebar = () => {
   return (
     <nav className="sidenav">
-      <ActionGroup
-        vertical
-        quiet
-        size="xl"
-      >
+      <ActionGroup vertical quiet size="xl">
         <ActionButton value="home">
           <HomeIcon slot="icon" />
         </ActionButton>
