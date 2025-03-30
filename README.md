@@ -1,11 +1,10 @@
 # create-swc-vite-react-app
 
-A CLI tool to create React applications with Vite and SWC for fast development and build times. Now with MCP support for integration with AI assistants!
+A CLI tool to create React applications with Vite and Spectrum Web Components for fast development and build times. Now with MCP support for integration with AI assistants!
 
 ## Features
 
 - ⚡️ Lightning fast development with Vite
-- 🔥 SWC for fast compilation
 - 📦 TypeScript support built-in
 - ⚛️ React 19+ for the latest features
 - 🎨 Spectrum Web Components integration
