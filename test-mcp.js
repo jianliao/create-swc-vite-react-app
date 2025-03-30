@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import fs from 'fs-extra';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function main() {
   try {
@@ -65,7 +68,7 @@ async function main() {
     const result = await client.callTool({
       name: 'create-app',
       arguments: {
-        projectPath: 'test-mcp-project',
+        projectPath: `${__dirname}/test-mcp-project`,
         useEslint: true,
         packageManager: 'npm',
         themeScale: 'both',

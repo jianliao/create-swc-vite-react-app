@@ -7,7 +7,26 @@ This document lists all possible combinations of CLI options for the `create-swc
 - `--theme-scale`: both (default)
 - `--theme-color`: both (default)
 - `--system`: spectrum (default)
+- `--eslint`: true (default)
+- `--mcp`: false (default)
 
+## Package Manager Options
+
+- `--use-npm` - Use npm as package manager
+- `--use-pnpm` - Use pnpm as package manager
+- `--use-yarn` - Use yarn as package manager
+
+## MCP Mode
+
+The tool can be started in MCP mode for integration with AI assistants:
+
+```bash
+# Start with MCP flag
+create-swc-vite-react-app --mcp
+
+# Or use npm scripts
+npm run test:mcp
+```
 
 ## All Possible Combinations
 

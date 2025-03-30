@@ -1,6 +1,6 @@
 {
   "name": "create-swc-vite-react-app",
-  "version": "0.1.18",
+  "version": "1.0.0",
   "description": "Create React applications with SWC and Vite",
   "main": "dist/index.js",
   "bin": {
@@ -16,8 +16,6 @@
     "dev": "tsc --watch",
     "test": "jest",
     "lint": "eslint . --ext .ts",
-    "start:mcp": "npm run build && node dist/index.js --mcp",
-    "debug:mcp": "npm run build && node --inspect dist/index.js --mcp",
     "test:mcp": "npm run build && node test-mcp.js",
     "prepare": "npm run build"
   },

@@ -17,6 +17,20 @@ A CLI tool to create React applications with Vite and SWC for fast development a
 - 🌙 Dark mode support
 - 🤖 MCP support for integration with AI assistants
 
+## Generated App Preview
+
+The generated app comes with a beautiful, responsive layout that includes a header, sidebar navigation, and main content area. Here's how it looks:
+
+![Generated App Preview](AppFrame.png)
+
+The app includes (some of the items listed below are still in development):
+- Modern, clean design
+- Responsive layout
+- Dark/Light theme support
+- Customizable color schemes
+- Collapsible sidebar
+- Ready-to-use Spectrum components
+
 ## Quick Start
 
 ```bash
@@ -56,16 +70,35 @@ my-app/
 ├── public/
 ├── src/
 │   ├── components/
+│   │   ├── icons/
+│   │   │   └── [icon components]
+│   │   ├── Accordion.ts
+│   │   ├── ActionBar.ts
 │   │   ├── ActionButton.ts
+│   │   ├── ActionGroup.ts
+│   │   ├── ActionMenu.ts
+│   │   ├── AlertBanner.ts
+│   │   ├── AlertDialog.ts
+│   │   ├── Button.ts
+│   │   ├── Card.ts
 │   │   ├── Checkbox.ts
+│   │   ├── Dialog.ts
+│   │   ├── Icon.ts
 │   │   ├── SpTheme.ts (imports customized based on theme options)
 │   │   ├── Toast.ts
 │   │   ├── Tooltip.ts
-│   │   └── index.ts
+│   │   ├── types.ts
+│   │   └── [60+ components in total]
+│   ├── layout/
+│   │   ├── Header.tsx
+│   │   ├── Header.css
+│   │   ├── Sidebar.tsx
+│   │   ├── Sidebar.css
+│   │   ├── MainContent.tsx
+│   │   └── MainContent.css
 │   ├── App.tsx
 │   ├── App.css
-│   ├── main.tsx
-│   └── index.css
+│   └── main.tsx
 ├── .eslintrc.cjs
 ├── index.html
 ├── package.json
@@ -73,6 +106,20 @@ my-app/
 ├── tsconfig.node.json
 └── vite.config.ts
 ```
+
+The project includes:
+
+- **components/**: A comprehensive set of Spectrum Web Components wrappers
+  - **icons/**: SVG icon components
+  - Various UI components (60+ components available)
+  - `SpTheme.ts`: Theme configuration (customized based on your options)
+  - `types.ts`: TypeScript type definitions
+- **layout/**: Pre-built layout components
+  - `Header`: Application header with navigation
+  - `Sidebar`: Collapsible side navigation
+  - `MainContent`: Main content area with responsive design
+- **App.tsx**: Main application component
+- **Configuration files**: ESLint, TypeScript, and Vite configs
 
 ## Available Scripts
 
@@ -85,15 +132,7 @@ In the project directory, you can run:
 
 ## MCP Support
 
-This tool now includes MCP (Model Context Protocol) support, which allows it to be integrated with AI assistants:
-
-```bash
-# Start in MCP mode
-npm run start:mcp
-
-# Start in MCP debug mode
-npm run debug:mcp
-```
+This tool now includes MCP (Model Context Protocol) mode support.
 
 ### MCP Features
 
@@ -105,10 +144,32 @@ npm run debug:mcp
 
 To integrate with Cursor, you can configure it to use this tool with the MCP protocol. This allows Cursor's AI assistant to directly create SWC+Vite React applications based on user instructions.
 
+```json
+{
+  "mcpServers": {
+    "create-swc-vite-react-app": {
+      "command": "npx",
+      "args": ["-y", "create-swc-vite-react-app@latest", "--mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
 ## Requirements
 
 - Node.js 18.0.0 or later
 - npm 7.0.0 or later, yarn 1.22.0 or later, or pnpm 7.0.0 or later
+
+## Dependencies
+
+Key dependencies:
+- @modelcontextprotocol/sdk: ^1.8.0
+- chalk: ^5.4.1
+- commander: ^13.1.0
+- fs-extra: ^11.3.0
+- prompts: ^2.4.2
+- validate-npm-package-name: ^6.0.0
 
 ## License
 
