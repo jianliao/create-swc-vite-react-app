@@ -49,6 +49,25 @@ export class McpLogger {
     }
   }
 
+  addSection(title: string): void {
+    this.log(title);
+  }
+
+  addSeparator(): void {
+    this.log('----------------------------------------');
+  }
+
+  addCommand(command: string, description?: string): void {
+    this.log(chalk.cyan(command));
+    if (description) {
+      this.log(`    ${description}`);
+    }
+  }
+
+  addSuccess(message: string): void {
+    this.log(chalk.green('✔'), message);
+  }
+
   getContent(): McpResponse {
     return {
       content: [{

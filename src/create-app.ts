@@ -1,8 +1,11 @@
 import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { McpLogger, McpResponse } from './utils/mcp-logger.js';
+
+const execAsync = promisify(exec);
 
 interface CreateAppOptions {
   projectPath: string;
@@ -28,12 +31,11 @@ export async function createApp({
   const logger = new McpLogger(isMcpMode);
 
   logger.log(`Creating a new React app with TypeScript in ${chalk.green(root)}.`);
-  logger.log('');
 
   // Only create directory if not doing in-place project creation
   if (projectPath !== '.') {
     try {
-      fs.mkdirSync(root, { recursive: true });
+      await fs.mkdir(root, { recursive: true });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       return logger.error(`Error creating directory: ${errorMessage}`);
@@ -56,7 +58,7 @@ export async function createApp({
     },
   };
 
-  fs.writeFileSync(
+  await fs.writeFile(
     path.join(root, 'package.json'),
     JSON.stringify(packageJson, null, 2) + '\n'
   );
@@ -147,7 +149,7 @@ export async function createApp({
     ] : []),
   ];
 
-  logger.log('Installing dependencies...');
+  logger.addSection('Installing dependencies...');
 
   const installCmd = packageManager === 'yarn'
     ? 'yarn add'
@@ -155,58 +157,69 @@ export async function createApp({
       ? 'pnpm add'
       : 'npm install';
 
-  execSync(`${installCmd} ${dependencies.join(' ')}`, { stdio: isMcpMode ? 'pipe' : 'inherit' });
-  execSync(`${installCmd} -D ${devDependencies.join(' ')}`, { stdio: isMcpMode ? 'pipe' : 'inherit' });
+  try {
+    const options = { encoding: 'utf8' as const };
+    await execAsync(`${installCmd} ${dependencies.join(' ')}`, options);
+    await execAsync(`${installCmd} -D ${devDependencies.join(' ')}`, options);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return logger.error(`Error installing dependencies: ${errorMessage}`);
+  }
 
   // Verify React version
   try {
     const packageJsonPath = path.join(root, 'node_modules', 'react', 'package.json');
-    const reactPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const reactPackageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
     const reactVersion = reactPackageJson.version;
 
     if (!reactVersion.startsWith('19.')) {
       logger.warn(`Warning: React version ${reactVersion} was installed. This tool is designed for React 19+.`);
     } else {
-      logger.log(chalk.green(`React ${reactVersion} successfully installed.`));
+      logger.addSuccess(`React ${reactVersion} successfully installed.`);
     }
   } catch (err) {
     logger.warn('Could not verify React version.');
   }
 
-  // Create src directory
+  // Create directory structure in parallel
   const srcDir = path.join(root, 'src');
-  fs.mkdirSync(srcDir, { recursive: true });
-
-  // Create src/core/components directory
   const componentsDir = path.join(srcDir, 'core/components');
-  fs.mkdirSync(componentsDir, { recursive: true });
-
-  // Create src/core/icons directory
   const iconsDir = path.join(srcDir, 'core/icons');
-  fs.mkdirSync(iconsDir, { recursive: true });
-
-  // Create src/layouts directory
   const layoutsDir = path.join(srcDir, 'layouts');
-  fs.mkdirSync(layoutsDir, { recursive: true });
-
-  // Create src/custom directory
   const customDir = path.join(srcDir, 'custom');
-  fs.mkdirSync(customDir, { recursive: true });
-
-  // Create src/shared directory
   const sharedDir = path.join(srcDir, 'shared');
-  fs.mkdirSync(sharedDir, { recursive: true });
 
+  const directories = [
+    componentsDir,
+    iconsDir,
+    layoutsDir,
+    customDir,
+    sharedDir
+  ];
+
+  await Promise.all(directories.map(dir => fs.mkdir(dir, { recursive: true })));
+
+  // Create rules directory
+  const rulesDir = path.join(root, '.cursor/rules');
+  await fs.mkdir(rulesDir, { recursive: true });
 
   // Copy template files
   const templateDir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'templates');
 
-  if (fs.existsSync(templateDir)) {
+  if (await fs.pathExists(templateDir)) {
+    // Copy rules templates
+    const templateRulesDir = path.join(templateDir, 'rules');
+    if (await fs.pathExists(templateRulesDir)) {
+      await fs.copy(templateRulesDir, rulesDir);
+      logger.addSuccess(`Copied Cursor rules to ${chalk.cyan('.cursor/rules')}`);
+    }
+
     // Copy component templates
     const templateComponentsDir = path.join(templateDir, 'components');
-    if (fs.existsSync(templateComponentsDir)) {
-      const componentFiles = fs.readdirSync(templateComponentsDir);
+    if (await fs.pathExists(templateComponentsDir)) {
+      const componentFiles = await fs.readdir(templateComponentsDir);
       const componentExports: string[] = [];
+      const componentCopyPromises: Promise<void>[] = [];
 
       for (const file of componentFiles) {
         if (file.endsWith('.ts') || file.endsWith('.tsx')) {
@@ -214,16 +227,16 @@ export async function createApp({
           const destPath = path.join(componentsDir, file);
           const componentName = path.basename(file, path.extname(file));
 
-          // Add export statement
           componentExports.push(`export * from './${componentName}';`);
-
-          // Copy other template files as-is
-          fs.copyFileSync(sourcePath, destPath);
+          componentCopyPromises.push(fs.copy(sourcePath, destPath));
         }
       }
 
+      // Wait for all component files to be copied
+      await Promise.all(componentCopyPromises);
+
       // Generate index.ts for components
-      fs.writeFileSync(
+      await fs.writeFile(
         path.join(componentsDir, 'index.ts'),
         componentExports.join('\n') + '\n'
       );
@@ -232,39 +245,29 @@ export async function createApp({
     // Special handling for Theme.ts
     const themeSourcePath = path.join(templateDir, 'Theme.ts');
     const themeDestPath = path.join(srcDir, 'Theme.ts');
-    if (fs.existsSync(themeSourcePath)) {
-      fs.copyFileSync(themeSourcePath, themeDestPath);
+    if (await fs.pathExists(themeSourcePath)) {
+      await fs.copy(themeSourcePath, themeDestPath);
     }
-    // Read the template file
-    let themeContent = fs.readFileSync(themeDestPath, 'utf8');
 
-    // Generate the imports based on user selections
+    // Read and modify Theme.ts
+    let themeContent = await fs.readFile(themeDestPath, 'utf8');
     const themeImports = generateThemeImports(themeScale, themeColor, system);
-
-    // Replace the placeholder with the generated imports
     themeContent = themeContent.replace('// THEME_IMPORTS_PLACEHOLDER', themeImports);
-
-    // Write the modified file
-    fs.writeFileSync(themeDestPath, themeContent);
-    logger.log(`Generated ${chalk.cyan('Theme.ts')} with your theme preferences.`);
+    await fs.writeFile(themeDestPath, themeContent);
+    
+    logger.addSuccess(`Generated ${chalk.cyan('Theme.ts')} with your theme preferences.`);
 
     // Copy icons directory if it exists
     const iconsSourceDir = path.join(templateDir, 'icons');
-    if (fs.existsSync(iconsSourceDir)) {
-      fs.copySync(iconsSourceDir, iconsDir);
+    if (await fs.pathExists(iconsSourceDir)) {
+      await fs.copy(iconsSourceDir, iconsDir);
       
-      // Generate index.ts for icons
-      const iconFiles = fs.readdirSync(iconsSourceDir);
-      const iconExports: string[] = [];
+      const iconFiles = await fs.readdir(iconsSourceDir);
+      const iconExports = iconFiles
+        .filter(file => file.endsWith('.ts') || file.endsWith('.tsx'))
+        .map(file => `export * from './${path.basename(file, path.extname(file))}';`);
 
-      for (const file of iconFiles) {
-        if (file.endsWith('.ts') || file.endsWith('.tsx')) {
-          const iconName = path.basename(file, path.extname(file));
-          iconExports.push(`export * from './${iconName}';`);
-        }
-      }
-
-      fs.writeFileSync(
+      await fs.writeFile(
         path.join(iconsDir, 'index.ts'),
         iconExports.join('\n') + '\n'
       );
@@ -272,34 +275,18 @@ export async function createApp({
 
     // Copy layout templates
     const templateLayoutDir = path.join(templateDir, 'layouts');
-    if (fs.existsSync(templateLayoutDir)) {
-      const layoutFiles = fs.readdirSync(templateLayoutDir);
-
-      for (const file of layoutFiles) {
-        const sourcePath = path.join(templateLayoutDir, file);
-        const destPath = path.join(layoutsDir, file);
-        
-        // Check if it's a directory or file
-        const stats = fs.statSync(sourcePath);
-        if (stats.isDirectory()) {
-          // Use copySync for directories
-          fs.copySync(sourcePath, destPath);
-        } else {
-          // Use copyFileSync for individual files
-          fs.copyFileSync(sourcePath, destPath);
-        }
-      }
+    if (await fs.pathExists(templateLayoutDir)) {
+      await fs.copy(templateLayoutDir, layoutsDir);
     }
   }
 
-  // Create main files
+  // Create main files in parallel
   const extension = 'tsx';
-
-  // App component
-
-  fs.writeFileSync(
-    path.join(srcDir, `App.${extension}`),
-    `import './App.css'
+  const fileWrites = [
+    // App component
+    fs.writeFile(
+      path.join(srcDir, `App.${extension}`),
+      `import './App.css'
 import { SpTheme } from './Theme'
 import Header from './layouts/s2-app-frame/Header'
 import Sidebar from './layouts/s2-app-frame/Sidebar'
@@ -319,12 +306,12 @@ function App() {
 
 export default App
 `
-  );
+    ),
 
-  // Main entry
-  fs.writeFileSync(
-    path.join(srcDir, `main.${extension}`),
-    `import React from 'react'
+    // Main entry
+    fs.writeFile(
+      path.join(srcDir, `main.${extension}`),
+      `import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 
@@ -334,12 +321,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 )
 `
-  );
+    ),
 
-  // CSS files
-  fs.writeFileSync(
-    path.join(srcDir, 'App.css'),
-    `#root {
+    // CSS files
+    fs.writeFile(
+      path.join(srcDir, 'App.css'),
+      `#root {
   width: 100vw;
   height: 100vh;
   margin: 0;
@@ -365,12 +352,12 @@ body {
   grid-template-rows: 56px 1fr;
 }
 `
-  );
+    ),
 
-  // Create index.html
-  fs.writeFileSync(
-    path.join(root, 'index.html'),
-    `<!DOCTYPE html>
+    // index.html
+    fs.writeFile(
+      path.join(root, 'index.html'),
+      `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -383,12 +370,12 @@ body {
   </body>
 </html>
 `
-  );
+    ),
 
-  // Create vite.config
-  fs.writeFileSync(
-    path.join(root, 'vite.config.ts'),
-    `import { defineConfig } from 'vite'
+    // vite.config
+    fs.writeFile(
+      path.join(root, 'vite.config.ts'),
+      `import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
@@ -396,12 +383,12 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
 })
 `
-  );
+    ),
 
-  // Create TypeScript configuration
-  fs.writeFileSync(
-    path.join(root, 'tsconfig.json'),
-    `{
+    // TypeScript configuration
+    fs.writeFile(
+      path.join(root, 'tsconfig.json'),
+      `{
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -436,11 +423,12 @@ export default defineConfig({
   "references": [{ "path": "./tsconfig.node.json" }]
 }
 `
-  );
+    ),
 
-  fs.writeFileSync(
-    path.join(root, 'tsconfig.node.json'),
-    `{
+    // tsconfig.node.json
+    fs.writeFile(
+      path.join(root, 'tsconfig.node.json'),
+      `{
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,
@@ -451,20 +439,23 @@ export default defineConfig({
   "include": ["vite.config.ts"]
 }
 `
-  );
+    ),
 
-  // Create a gitignore file for the nodejs project
-  fs.writeFileSync(
-    path.join(root, '.gitignore'),
-    `node_modules
+    // gitignore
+    fs.writeFile(
+      path.join(root, '.gitignore'),
+      `node_modules
 .env
 `
-  );
+    )
+  ];
 
+  // Add ESLint config if needed
   if (useEslint) {
-    fs.writeFileSync(
-      path.join(root, '.eslintrc.cjs'),
-      `module.exports = {
+    fileWrites.push(
+      fs.writeFile(
+        path.join(root, '.eslintrc.cjs'),
+        `module.exports = {
   root: true,
   env: { browser: true, es2020: true },
   extends: [
@@ -483,92 +474,90 @@ export default defineConfig({
   },
 }
 `
+      )
     );
   }
 
-  // Generate theme imports based on user choices
-  function generateThemeImports(themeScale: string, themeColor: string, system: string): string {
-    const imports = [];
-    imports.push('import \'@spectrum-web-components/theme/sp-theme.js\';');
+  // Write all files in parallel
+  await Promise.all(fileWrites);
 
-    // Add system-specific imports
-    if (system === 'spectrum') {
-      // Add scale imports for Spectrum
-      if (themeScale === 'large' || themeScale === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/scale-large.js\';');
-      }
-      if (themeScale === 'medium' || themeScale === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/scale-medium.js\';');
-      }
-
-      // Add color imports for Spectrum
-      if (themeColor === 'dark' || themeColor === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/theme-dark.js\';');
-      }
-      if (themeColor === 'light' || themeColor === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/theme-light.js\';');
-      }
-    }
-    else if (system === 'spectrum-two') {
-      // Add scale imports for Spectrum Two
-      if (themeScale === 'large' || themeScale === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/spectrum-two/scale-large.js\';');
-      }
-      if (themeScale === 'medium' || themeScale === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/spectrum-two/scale-medium.js\';');
-      }
-
-      // Add color imports for Spectrum Two
-      if (themeColor === 'dark' || themeColor === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/spectrum-two/theme-dark.js\';');
-      }
-      if (themeColor === 'light' || themeColor === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/spectrum-two/theme-light.js\';');
-      }
-    }
-    else if (system === 'express') {
-      // Add scale imports for Express
-      if (themeScale === 'large' || themeScale === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/express/scale-large.js\';');
-      }
-      if (themeScale === 'medium' || themeScale === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/express/scale-medium.js\';');
-      }
-
-      // Add color imports for Express
-      if (themeColor === 'dark' || themeColor === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/express/theme-dark.js\';');
-      }
-      if (themeColor === 'light' || themeColor === 'both') {
-        imports.push('import \'@spectrum-web-components/theme/express/theme-light.js\';');
-      }
-    }
-
-    return imports.join('\n');
-  }
-
-  logger.log('');
-  logger.log(chalk.green('Success!'), 'Created', chalk.cyan(appName), 'at', chalk.cyan(root));
-  logger.log('');
-  logger.log('Inside that directory, you can run several commands:');
-  logger.log('');
-  logger.log(chalk.cyan(`  ${packageManager} dev`));
-  logger.log('    Starts the development server.');
-  logger.log('');
-  logger.log(chalk.cyan(`  ${packageManager} build`));
-  logger.log('    Bundles the app into static files for production.');
-  logger.log('');
-  logger.log(chalk.cyan(`  ${packageManager} preview`));
-  logger.log('    Locally preview production build.');
-  logger.log('');
-  logger.log('We suggest that you begin by typing:');
-  logger.log('');
-  logger.log(chalk.cyan('  cd'), appName);
-  logger.log(`  ${chalk.cyan(`${packageManager} dev`)}`);
-  logger.log('');
+  logger.addSuccess(`Created ${chalk.cyan(appName)} at ${chalk.cyan(root)}`);
+  
+  logger.addSection('Inside that directory, you can run several commands:');
+  
+  logger.addCommand(`${packageManager} dev`, 'Starts the development server.');
+  logger.addCommand(`${packageManager} build`, 'Bundles the app into static files for production.');
+  logger.addCommand(`${packageManager} preview`, 'Locally preview production build.');
+  
+  logger.addSection('We suggest that you begin by typing:');
+  
+  logger.addCommand(`cd ${appName}`);
+  logger.addCommand(`${packageManager} dev`);
+  
   logger.log('Happy hacking!');
 
   if (isMcpMode) {
     return logger.getContent();
   }
+}
+
+// Generate theme imports based on user choices
+function generateThemeImports(themeScale: string, themeColor: string, system: string): string {
+  const imports = [];
+  imports.push('import \'@spectrum-web-components/theme/sp-theme.js\';');
+
+  // Add system-specific imports
+  if (system === 'spectrum') {
+    // Add scale imports for Spectrum
+    if (themeScale === 'large' || themeScale === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/scale-large.js\';');
+    }
+    if (themeScale === 'medium' || themeScale === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/scale-medium.js\';');
+    }
+
+    // Add color imports for Spectrum
+    if (themeColor === 'dark' || themeColor === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/theme-dark.js\';');
+    }
+    if (themeColor === 'light' || themeColor === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/theme-light.js\';');
+    }
+  }
+  else if (system === 'spectrum-two') {
+    // Add scale imports for Spectrum Two
+    if (themeScale === 'large' || themeScale === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/spectrum-two/scale-large.js\';');
+    }
+    if (themeScale === 'medium' || themeScale === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/spectrum-two/scale-medium.js\';');
+    }
+
+    // Add color imports for Spectrum Two
+    if (themeColor === 'dark' || themeColor === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/spectrum-two/theme-dark.js\';');
+    }
+    if (themeColor === 'light' || themeColor === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/spectrum-two/theme-light.js\';');
+    }
+  }
+  else if (system === 'express') {
+    // Add scale imports for Express
+    if (themeScale === 'large' || themeScale === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/express/scale-large.js\';');
+    }
+    if (themeScale === 'medium' || themeScale === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/express/scale-medium.js\';');
+    }
+
+    // Add color imports for Express
+    if (themeColor === 'dark' || themeColor === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/express/theme-dark.js\';');
+    }
+    if (themeColor === 'light' || themeColor === 'both') {
+      imports.push('import \'@spectrum-web-components/theme/express/theme-light.js\';');
+    }
+  }
+
+  return imports.join('\n');
 } 

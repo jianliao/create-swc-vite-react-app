@@ -4,16 +4,16 @@ globs:
 alwaysApply: true
 ---
 ---
-description: Enforce always use the src/components for UI components in this project.
-globs: **/*.tsx, **/*.jsx, src/components/**/*
+description: Enforce always use the src/core/components for UI components in this project.
+globs: **/*.tsx
 alwaysApply: true
 ---
 
 # React Best Practices
 
 ## UI Components
-- Reuse the UI components in src/components/* as much as possible
-- Reuse the icon components in src/components/icons as much as possible
+- Reuse the UI components in src/core/components/* as much as possible. Any UI components in this folder should be referenced by @core-ui-components
+- Reuse the icon components in src/core/icons as much as possible. Any Icon components in this folder should be referenced by @core-ui-icons
 
 ## Component Structure
 - Use functional components over class components
