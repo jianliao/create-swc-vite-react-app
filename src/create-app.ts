@@ -409,6 +409,14 @@ export default defineConfig({
 `
   );
 
+  // Create a gitignore file for the nodejs project
+  fs.writeFileSync(
+    path.join(root, '.gitignore'),
+    `node_modules
+.env
+`
+  );
+
   if (useEslint) {
     fs.writeFileSync(
       path.join(root, '.eslintrc.cjs'),

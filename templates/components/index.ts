@@ -30,6 +30,7 @@ export * from './FieldGroup';
 export * from './FieldLabel';
 export * from './Grid';
 export * from './HelpText';
+export * from './Icon';
 export * from './IllustratedMessage';
 export * from './InfieldButton';
 export * from './Link';
