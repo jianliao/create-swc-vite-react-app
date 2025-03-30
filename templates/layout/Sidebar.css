@@ -1,0 +1,5 @@
+.sidenav {
+  grid-area: sidenav;
+  background-color: var(--spectrum-gray-100);
+  padding: 8px;
+} 

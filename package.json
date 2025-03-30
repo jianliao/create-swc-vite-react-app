@@ -1,10 +1,10 @@
 {
   "name": "create-swc-vite-react-app",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Create React applications with SWC and Vite",
   "main": "dist/index.js",
   "bin": {
-    "create-swc-vite-react-app": "./dist/index.js"
+    "create-swc-vite-react-app": "dist/index.js"
   },
   "type": "module",
   "files": [
@@ -12,13 +12,14 @@
     "templates"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/index.js",
     "dev": "tsc --watch",
     "test": "jest",
     "lint": "eslint . --ext .ts",
     "start:mcp": "npm run build && node dist/index.js --mcp",
     "debug:mcp": "npm run build && node --inspect dist/index.js --mcp",
-    "test:mcp": "npm run build && node test-mcp.js"
+    "test:mcp": "npm run build && node test-mcp.js",
+    "prepare": "npm run build"
   },
   "keywords": [
     "react",

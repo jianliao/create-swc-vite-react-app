@@ -20,7 +20,7 @@ async function main() {
     // Create a client
     const transport = new StdioClientTransport({
       command: 'node',
-      args: ['./dist/index.js', '--mcp'],
+      args: [ '--inspect','dist/index.js', '--mcp'],
       timeout: 5*60*1000
     });
 

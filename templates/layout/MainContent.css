@@ -1,0 +1,38 @@
+.main-content {
+  grid-area: main;
+  background-color: var(--spectrum-gray-200);
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: 300px 300px 600px;
+  gap: 16px;
+}
+
+.main-content-panel {
+  background-color: var(--spectrum-gray-75);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+/* Top row panels take 3 columns each */
+.main-content-panel:nth-child(1) {
+  grid-column: span 3;
+}
+
+.main-content-panel:nth-child(2) {
+  grid-column: span 3;
+}
+
+/* Middle row panels */
+.main-content-panel.two-thirds {
+  grid-column: span 4;
+}
+
+.main-content-panel.one-third {
+  grid-column: span 2;
+}
+
+/* Bottom panel spans full width */
+.main-content-panel.full-width {
+  grid-column: 1 / -1;
+} 

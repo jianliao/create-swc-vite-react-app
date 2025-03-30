@@ -180,38 +180,66 @@ export async function createApp({
   const componentsDir = path.join(srcDir, 'components');
   fs.mkdirSync(componentsDir, { recursive: true });
 
+  // Create layout directory and copy template files
+  const layoutDir = path.join(srcDir, 'layout');
+  fs.mkdirSync(layoutDir, { recursive: true });
+
   // Copy template files
   const templateDir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'templates');
   if (fs.existsSync(templateDir)) {
-    const templateFiles = fs.readdirSync(templateDir);
-    const componentsToExport = [];
+    // Copy component templates
+    const templateComponentsDir = path.join(templateDir, 'components');
+    if (fs.existsSync(templateComponentsDir)) {
+      const componentFiles = fs.readdirSync(templateComponentsDir);
+      const componentsToExport = [];
 
-    for (const file of templateFiles) {
-      if (file.endsWith('.ts')) {
-        const componentName = file.replace('.ts', '');
-        const sourcePath = path.join(templateDir, file);
-        const destPath = path.join(componentsDir, file);
+      for (const file of componentFiles) {
+        if (file.endsWith('.ts')) {
+          const componentName = file.replace('.ts', '');
+          const sourcePath = path.join(templateComponentsDir, file);
+          const destPath = path.join(componentsDir, file);
 
-        // Special handling for SpTheme.ts
-        if (file === 'SpTheme.ts') {
-          // Read the template file
-          let themeContent = fs.readFileSync(sourcePath, 'utf8');
+          // Special handling for SpTheme.ts
+          if (file === 'SpTheme.ts') {
+            // Read the template file
+            let themeContent = fs.readFileSync(sourcePath, 'utf8');
 
-          // Generate the imports based on user selections
-          const themeImports = generateThemeImports(themeScale, themeColor, system);
+            // Generate the imports based on user selections
+            const themeImports = generateThemeImports(themeScale, themeColor, system);
 
-          // Replace the placeholder with the generated imports
-          themeContent = themeContent.replace('// THEME_IMPORTS_PLACEHOLDER', themeImports);
+            // Replace the placeholder with the generated imports
+            themeContent = themeContent.replace('// THEME_IMPORTS_PLACEHOLDER', themeImports);
 
-          // Write the modified file
-          fs.writeFileSync(destPath, themeContent);
-          logger.log(`Generated ${chalk.cyan('SpTheme.ts')} with your theme preferences.`);
-        } else {
-          // Copy other template files as-is
-          fs.copyFileSync(sourcePath, destPath);
+            // Write the modified file
+            fs.writeFileSync(destPath, themeContent);
+            logger.log(`Generated ${chalk.cyan('SpTheme.ts')} with your theme preferences.`);
+          } else {
+            // Copy other template files as-is
+            fs.copyFileSync(sourcePath, destPath);
+          }
+
+          componentsToExport.push(componentName);
         }
+      }
 
-        componentsToExport.push(componentName);
+      // Copy icons directory if it exists
+      const iconsSourceDir = path.join(templateComponentsDir, 'icons');
+      if (fs.existsSync(iconsSourceDir)) {
+        const iconsDestDir = path.join(componentsDir, 'icons');
+        fs.mkdirSync(iconsDestDir, { recursive: true });
+        fs.copySync(iconsSourceDir, iconsDestDir);
+      }
+    }
+
+    // Copy layout templates
+    const templateLayoutDir = path.join(templateDir, 'layout');
+    if (fs.existsSync(templateLayoutDir)) {
+      const layoutFiles = fs.readdirSync(templateLayoutDir);
+
+      for (const file of layoutFiles) {
+        const sourcePath = path.join(templateLayoutDir, file);
+        const destPath = path.join(layoutDir, file);
+        fs.copyFileSync(sourcePath, destPath);
       }
     }
   }
@@ -223,26 +251,19 @@ export async function createApp({
 
   fs.writeFileSync(
     path.join(srcDir, `App.${extension}`),
-    `import { useState } from 'react'
-import './App.css'
-import { Button } from '@components/Button'
+    `import './App.css'
 import { SpTheme } from '@components/SpTheme'
+import Header from './layout/Header'
+import Sidebar from './layout/Sidebar'
+import MainContent from './layout/MainContent'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <SpTheme system="${system}" scale="${themeScale === 'both' ? 'medium' : themeScale}" color="${themeColor === 'both' ? 'light' : themeColor}">
-      <div className="App">
-        <h1>Vite + React + TypeScript</h1>
-        <div className="card">
-          <Button onClick={() => setCount((count) => count + 1)}>
-            count is {count}
-          </Button>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test HMR
-          </p>
-        </div>
+      <div className="layout">
+        <Header />
+        <Sidebar />
+        <MainContent />
       </div>
     </SpTheme>
   )
@@ -258,7 +279,6 @@ export default App
     `import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
-import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -272,51 +292,29 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   fs.writeFileSync(
     path.join(srcDir, 'App.css'),
     `#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-`
-  );
-
-  fs.writeFileSync(
-    path.join(srcDir, 'index.css'),
-    `:root {
-  color-scheme: light dark;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.layout {
+  display: grid;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3em;
-  line-height: 1.1;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: var(--spectrum-gray-800);
-    background-color: var(--spectrum-gray-200);
-  }
+  width: 100vw;
+  margin: 0;
+  grid-template-areas: 
+    "header header"
+    "sidenav main";
+  grid-template-columns: 64px 1fr;
+  grid-template-rows: 56px 1fr;
 }
 `
   );

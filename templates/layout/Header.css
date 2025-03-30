@@ -1,0 +1,30 @@
+.header {
+  grid-area: header;
+  background-color: var(--spectrum-gray-100);
+  color: var(--spectrum-gray-900);
+  display: grid;
+  grid-template-columns: minmax(auto, 360px) 1fr minmax(auto, 360px);
+  align-items: center;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.header-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.header-search {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+} 

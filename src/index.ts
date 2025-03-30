@@ -6,14 +6,15 @@ import prompts from 'prompts';
 import { createApp } from './create-app.js';
 import { validateProjectName } from './utils/validate-name.js';
 import path from 'path';
-// import { fileURLToPath } from 'url';
-// import fs from 'fs';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { startMcpServer } from './mcp-server.js';
+
 // Get the package version from package.json
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-// const packageJsonPath = path.resolve(__dirname, '../package.json');
-// const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const packageJsonPath = path.resolve(__dirname, '../package.json');
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 const isMcpMode = process.argv.includes('--mcp');
 
@@ -35,8 +36,7 @@ if (isMcpMode) {
     .option('--theme-scale <scale>', 'Theme scale (large, medium, both)', 'both')
     .option('--theme-color <color>', 'Theme color (dark, light, both)', 'both')
     .option('--system <s>', 'Design system (spectrum, spectrum-two, express)', 'spectrum')
-    // .version(packageJson.version || '0.1.0')
-    .version('0.1.16')
+    .version(packageJson.version || '0.1.0')
     .action(async (projectName: string | undefined, options) => {
       try {
         if (!projectName) {
